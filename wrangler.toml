@@ -1,7 +1,0 @@
-name = "wikio"
-compatibility_date = "2026-05-22"
-
-[[d1_databases]]
-binding = "DB"
-database_name = "wikio"
-database_id = "CHANGE_ME"
