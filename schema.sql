@@ -30,9 +30,7 @@ CREATE TABLE IF NOT EXISTS sessions (
 );
 
 -- Seed pages
-INSERT OR IGNORE INTO pages (title, content) VALUES (
-  'Main_Page',
-  '== Welcome to WikiO ==
+INSERT OR IGNORE INTO pages (title, content) VALUES ('Main_Page', '== Welcome to WikiO ==
 
 WikiO is a free, collaborative encyclopedia that anyone can edit.
 
@@ -59,20 +57,17 @@ Visit [[Special:RecentChanges]] to see what has been changed recently.
 
 You can use <nowiki>[[double brackets]]</nowiki> to link to any page on the wiki.
 
-<references/>'
-);
+<references/>');
 
-INSERT OR IGNORE INTO pages (title, content) VALUES (
-  'Help:Editing',
-  '== Editing Pages ==
+INSERT OR IGNORE INTO pages (title, content) VALUES ('Help:Editing', '== Editing Pages ==
 
-To edit a page, click the '''Edit''' tab at the top of the page.
+To edit a page, click the ''''''Edit'''''' tab at the top of the page.
 
 === Basic Formatting ===
 
-; Bold : <nowiki>'''bold text'''</nowiki>
-; Italic : <nowiki>''italic text''</nowiki>
-; Bold+Italic : <nowiki>''''bold italic''''</nowiki>
+; Bold : <nowiki>''''''bold text''''''</nowiki>
+; Italic : <nowiki>''''italic text''''</nowiki>
+; Bold+Italic : <nowiki>''''''''''bold italic''''''''''</nowiki>
 
 === Headers ===
 
@@ -101,12 +96,9 @@ Add a citation with <nowiki><ref>{{cite web|url=https://example.com|title=Exampl
 
 Place <nowiki><references/></nowiki> at the bottom of the page to display all citations.
 
-<references/>'
-);
+<references/>');
 
-INSERT OR IGNORE INTO pages (title, content) VALUES (
-  'Help:Wikitext',
-  '== Wikitext Reference ==
+INSERT OR IGNORE INTO pages (title, content) VALUES ('Help:Wikitext', '== Wikitext Reference ==
 
 This page documents all supported wikitext syntax in WikiO.
 
@@ -116,11 +108,24 @@ This page documents all supported wikitext syntax in WikiO.
 |-
 ! Wikitext !! Result
 |-
-| <nowiki>''italic''</nowiki> || ''italic''
+| <nowiki>''''italic''''</nowiki> || result: italic
 |-
-| <nowiki>'''bold'''</nowiki> || '''bold'''
+| <nowiki>''''''bold''''''</nowiki> || result: bold
 |-
-| <nowiki>''''bold italic''''</nowiki> || ''''bold italic''''
+| <nowiki>''''''''''bold italic''''''''''</nowiki> || result: bold italic
+|}
+
+=== Links ===
+
+{| class="wikitable"
+|-
+! Wikitext !! Result
+|-
+| <nowiki>[[Page Name]]</nowiki> || Internal link
+|-
+| <nowiki>[[Page Name|Label]]</nowiki> || Link with custom label
+|-
+| <nowiki>[https://example.com Text]</nowiki> || External link
 |}
 
 === Templates ===
@@ -135,12 +140,9 @@ Supported templates:
 * <nowiki>{{disambiguation}}</nowiki> — Disambiguation notice
 * <nowiki>{{redirect}}</nowiki> — Redirect notice
 
-<references/>'
-);
+<references/>');
 
-INSERT OR IGNORE INTO pages (title, content) VALUES (
-  'Help:Templates',
-  '== Using Templates ==
+INSERT OR IGNORE INTO pages (title, content) VALUES ('Help:Templates', '== Using Templates ==
 
 Templates allow reusable content blocks to be inserted into pages.
 
@@ -148,7 +150,7 @@ Templates allow reusable content blocks to be inserted into pages.
 
 <nowiki>{{Infobox
 | title = Article Title
-| image = 
+| image =
 | caption = Image caption
 | field1 = Value 1
 | field2 = Value 2
@@ -173,25 +175,21 @@ Templates allow reusable content blocks to be inserted into pages.
 * <nowiki>{{stub}}</nowiki> — Marks an article as incomplete
 * <nowiki>{{disambiguation}}</nowiki> — Marks a disambiguation page
 
-<references/>'
-);
+<references/>');
 
-INSERT OR IGNORE INTO pages (title, content) VALUES (
-  'WikiO:About',
-  '== About WikiO ==
+INSERT OR IGNORE INTO pages (title, content) VALUES ('WikiO:About', '== About WikiO ==
 
 WikiO is a wiki platform inspired by [[Wikipedia]], built on Cloudflare Pages, Workers, and D1.
 
 === Technology ===
 
-* '''Frontend''': Vanilla JavaScript with wikitext parser
-* '''Backend''': Cloudflare Pages Functions
-* '''Database''': Cloudflare D1 (SQLite)
-* '''Hosting''': Cloudflare Pages
+* ''''''Frontend'''''': Vanilla JavaScript with wikitext parser
+* ''''''Backend'''''': Cloudflare Pages Functions
+* ''''''Database'''''': Cloudflare D1 (SQLite)
+* ''''''Hosting'''''': Cloudflare Pages
 
 === Contributing ===
 
 Anyone can edit pages on WikiO. To get started, [[Special:CreateAccount|create an account]] or edit as an anonymous user.
 
-<references/>'
-);
+<references/>');
