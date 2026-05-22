@@ -2,15 +2,7 @@ export async function onRequestGet(context) {
   try {
     const title = context.params.title
 
-    if (!context.env.DB) {
-      return Response.json({
-        error: 'D1 database not connected'
-      }, {
-        status: 500
-      })
-    }
-
-    const page =
+    const result =
       await context.env.DB
         .prepare(
           'SELECT * FROM pages WHERE title = ?'
@@ -19,7 +11,7 @@ export async function onRequestGet(context) {
         .first()
 
     return Response.json(
-      page || {
+      result || {
         title,
         content: ''
       }
@@ -37,18 +29,12 @@ export async function onRequestGet(context) {
 
 export async function onRequestPost(context) {
   try {
-    const title = context.params.title
+
+    const title =
+      context.params.title
 
     const body =
       await context.request.json()
-
-    if (!context.env.DB) {
-      return Response.json({
-        error: 'D1 database not connected'
-      }, {
-        status: 500
-      })
-    }
 
     await context.env.DB
       .prepare(`
@@ -58,8 +44,7 @@ export async function onRequestPost(context) {
 
         ON CONFLICT(title)
         DO UPDATE SET
-          content = excluded.content,
-          updated_at = CURRENT_TIMESTAMP
+          content = excluded.content
       `)
       .bind(
         title,
