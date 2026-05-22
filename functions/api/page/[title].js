@@ -1,33 +1,82 @@
 export async function onRequestGet(context) {
-  const title = context.params.title
+  try {
+    const title = context.params.title
 
-  const result = await context.env.DB
-    .prepare('SELECT * FROM pages WHERE title = ?')
-    .bind(title)
-    .first()
+    if (!context.env.DB) {
+      return Response.json({
+        error: 'D1 database not connected'
+      }, {
+        status: 500
+      })
+    }
 
-  return Response.json(
-    result || { title, content: '' }
-  )
+    const page =
+      await context.env.DB
+        .prepare(
+          'SELECT * FROM pages WHERE title = ?'
+        )
+        .bind(title)
+        .first()
+
+    return Response.json(
+      page || {
+        title,
+        content: ''
+      }
+    )
+
+  } catch (err) {
+
+    return Response.json({
+      error: err.message
+    }, {
+      status: 500
+    })
+  }
 }
 
 export async function onRequestPost(context) {
-  const title = context.params.title
+  try {
+    const title = context.params.title
 
-  const body = await context.request.json()
+    const body =
+      await context.request.json()
 
-  await context.env.DB.prepare(`
-    INSERT INTO pages (title, content)
-    VALUES (?, ?)
-    ON CONFLICT(title)
-    DO UPDATE SET
-      content = excluded.content,
-      updated_at = CURRENT_TIMESTAMP
-  `)
-  .bind(title, body.content)
-  .run()
+    if (!context.env.DB) {
+      return Response.json({
+        error: 'D1 database not connected'
+      }, {
+        status: 500
+      })
+    }
 
-  return Response.json({
-    success: true
-  })
+    await context.env.DB
+      .prepare(`
+        INSERT INTO pages
+          (title, content)
+        VALUES (?, ?)
+
+        ON CONFLICT(title)
+        DO UPDATE SET
+          content = excluded.content,
+          updated_at = CURRENT_TIMESTAMP
+      `)
+      .bind(
+        title,
+        body.content
+      )
+      .run()
+
+    return Response.json({
+      success: true
+    })
+
+  } catch (err) {
+
+    return Response.json({
+      error: err.message
+    }, {
+      status: 500
+    })
+  }
 }
