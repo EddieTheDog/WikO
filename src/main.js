@@ -179,53 +179,24 @@ async function resolveTemplate(inner, depth) {
   const lines = inner.split('\n').map(l => l.trim()).filter(Boolean)
   if (!lines.length) return ''
 
-  // Parse name and params
-  const firstLine = lines[0]
-  let name = firstLine.split('|')[0].trim()
   const params = {}
   let positional = 1
+
   const allText = lines.join('\n')
+
   const split = splitTemplateParams(allText)
-  name = split[0].trim()
-  function splitTemplateParams(text) {
+
+  let name = split[0].trim()
+
   const parts = split.slice(1)
-  let current = ''
-  let depth = 0
 
-  for (let i = 0; i < text.length; i++) {
-    const two = text.slice(i, i + 2)
-
-    if (two === '{{') {
-      depth++
-      current += two
-      i++
-      continue
-    }
-
-    if (two === '}}') {
-      depth--
-      current += two
-      i++
-      continue
-    }
-
-    if (text[i] === '|' && depth === 0) {
-      parts.push(current)
-      current = ''
-      continue
-    }
-
-    current += text[i]
-  }
-
-  parts.push(current)
-
-  return parts
-}
   parts.forEach(part => {
     const eq = part.indexOf('=')
+
     if (eq >= 0) {
-      params[part.slice(0, eq).trim()] = part.slice(eq + 1).trim()
+      params[
+        part.slice(0, eq).trim()
+      ] = part.slice(eq + 1).trim()
     } else {
       params[String(positional++)] = part.trim()
     }
