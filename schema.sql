@@ -193,3 +193,26 @@ WikiO is a wiki platform inspired by [[Wikipedia]], built on Cloudflare Pages, W
 Anyone can edit pages on WikiO. To get started, [[Special:CreateAccount|create an account]] or edit as an anonymous user.
 
 <references/>');
+
+-- Colorbox template: a banner/box with a configurable background color, title, and body text
+INSERT OR IGNORE INTO pages (title, content) VALUES ('Template:Colorbox', '<div style="background-color:{{{color|#eaf3fb}}};border:2px solid {{{border|#a2cce3}}};border-radius:4px;padding:12px 16px;margin:0.8em 0;line-height:1.5;">
+<span style="font-weight:700;font-size:1rem;color:{{{title-color|#1a1a1a}}}">{{{title|}}}</span>
+{{{body|{{{1|}}}}}}
+</div>
+
+== Usage ==
+
+<nowiki>{{Colorbox
+| color       = #fef6e7
+| border      = #f0c860
+| title       = ⚠️ Note
+| title-color = #7a5700
+| body        = Your message here.
+}}</nowiki>
+
+Parameters:
+* '''color''' — background color (any CSS color: hex, rgb, named). Default: light blue.
+* '''border''' — border color. Default: matches color.
+* '''title''' — bold heading text shown at the top of the box.
+* '''title-color''' — color for the title text. Default: near-black.
+* '''body''' / positional '''1''' — main content of the box.');
