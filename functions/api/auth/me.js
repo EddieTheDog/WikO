@@ -6,15 +6,22 @@ export async function onRequestGet(context) {
     const tokenMatch = cookie.match(/wikio_session=([^;]+)/)
 
     if (!tokenMatch) {
-      return Response.json({ user: null })
+      return Response.json({ user: null, is_admin: false })
     }
 
     const session = await context.env.DB
-      .prepare('SELECT username FROM sessions WHERE token = ? AND expires_at > datetime("now")')
+      .prepare(`
+        SELECT s.username, u.is_admin
+        FROM sessions s
+        JOIN users u ON u.username = s.username
+        WHERE s.token = ? AND s.expires_at > datetime('now')
+      `)
       .bind(tokenMatch[1])
       .first()
 
-    return Response.json({ user: session ? session.username : null })
+    if (!session) return Response.json({ user: null, is_admin: false })
+
+    return Response.json({ user: session.username, is_admin: session.is_admin === 1 })
 
   } catch (err) {
     return Response.json({ error: err.message }, { status: 500 })
