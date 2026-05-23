@@ -185,7 +185,41 @@ async function resolveTemplate(inner, depth) {
   const params = {}
   let positional = 1
   const allText = lines.join('\n')
-  const parts = allText.split('|').slice(1)
+  function splitTemplateParams(text) {
+  const parts = []
+  let current = ''
+  let depth = 0
+
+  for (let i = 0; i < text.length; i++) {
+    const two = text.slice(i, i + 2)
+
+    if (two === '{{') {
+      depth++
+      current += two
+      i++
+      continue
+    }
+
+    if (two === '}}') {
+      depth--
+      current += two
+      i++
+      continue
+    }
+
+    if (text[i] === '|' && depth === 0) {
+      parts.push(current)
+      current = ''
+      continue
+    }
+
+    current += text[i]
+  }
+
+  parts.push(current)
+
+  return parts
+}
   parts.forEach(part => {
     const eq = part.indexOf('=')
     if (eq >= 0) {
