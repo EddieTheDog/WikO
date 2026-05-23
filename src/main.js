@@ -194,84 +194,204 @@ async function resolveTemplate(inner, depth) {
 
   // ── Built-in hardcoded templates ──────────────────────────────────────────
 
-  if (nameLower === 'infobox') return renderInfobox(params)
-  if (nameLower === 'stub') return renderStub()
-  if (nameLower === 'disambiguation') return `<div class="hatnote">This is a <a href="/wiki/Help:Disambiguation" class="wikilink">disambiguation</a> page — a list of articles with similar titles.</div>`
-  if (nameLower === 'redirect') {
+  if (nameLower === 'infobox' || nameLower.startsWith('infobox ') || nameLower.startsWith('infobox/'))
+    return renderInfobox(params)
+  if (nameLower === 'stub' || nameLower.endsWith('-stub')) return renderStub(params)
+
+  // ── Citation templates ────────────────────────────────────────────────────
+  if (nameLower.startsWith('cite ') || nameLower === 'citation') {
+    return renderCitation(nameLower.replace('cite ','') || 'generic', params)
+  }
+  if (nameLower === 'sfn' || nameLower === 'harvnb' || nameLower === 'harv') {
+    const authors = [params['1'],params['2'],params['3'],params['4']].filter(Boolean)
+    const year = params['5'] || params.year || ''
+    const page = params.p || params.pp || params.loc || ''
+    const id = authors.join('') + year
+    return `<sup class="reference"><a href="#${escapeHtml(id)}">${authors.join(' &amp; ')} ${year}${page ? ', p.\u00a0' + page : ''}</a></sup>`
+  }
+
+  // ── Navigation / disambiguation ────────────────────────────────────────────
+  if (nameLower === 'disambiguation' || nameLower === 'dab' || nameLower === 'disambig') {
+    return `<div class="dmbox dmbox-disambig" role="note"><span class="dmbox-image">📋</span><span>This <a href="/wiki/Help:Disambiguation" class="wikilink">disambiguation</a> page lists articles associated with the same title.</span></div>`
+  }
+  if (nameLower === 'redirect' || nameLower === 'r') {
     const target = params['1'] || ''
-    return `<div class="hatnote">↪ Redirect to <a href="/wiki/${target.replace(/ /g, '_')}" class="wikilink">${target}</a></div>`
+    return `<div class="hatnote">↪ Redirect to <a href="/wiki/${target.replace(/ /g,'_')}" class="wikilink">${target}</a></div>`
   }
-  if (['cite web','cite news','cite book','cite journal'].includes(nameLower)) {
-    return renderCitation(nameLower.replace('cite ',''), params)
+  if (nameLower === 'hatnote' || nameLower === 'note') return `<div class="hatnote" role="note">${params['1'] || ''}</div>`
+  if (nameLower === 'for' || nameLower === 'for other uses') {
+    const about = params['1'] || 'other uses', target = params['2'] || ''
+    return `<div class="hatnote" role="note">This article is about ${about}. For other uses, see ${target ? `<a href="/wiki/${target.replace(/ /g,'_')}" class="wikilink">${target}</a>` : 'the disambiguation page'}.</div>`
   }
-  if (nameLower === 'hatnote' || nameLower === 'note') {
-    return `<div class="hatnote" role="note">${params['1'] || ''}</div>`
+  if (nameLower === 'about') {
+    const use1=params['1']||'', see1=params['2']||''
+    let msg = use1 ? `This article is about ${use1}.` : ''
+    if (see1) msg += ` For ${see1}, see <a href="/wiki/${(params['4']||see1).replace(/ /g,'_')}" class="wikilink">${params['4']||see1}</a>.`
+    if (params['3']) msg += ` For ${params['3']}, see <a href="/wiki/${(params['5']||params['3']).replace(/ /g,'_')}" class="wikilink">${params['5']||params['3']}</a>.`
+    return `<div class="hatnote" role="note">${msg}</div>`
   }
   if (nameLower === 'main') {
-    return `<div class="hatnote" role="note">→ Main article: <a href="/wiki/${(params['1']||'').replace(/ /g,'_')}" class="wikilink">${params['1']||''}</a></div>`
+    const links = [params['1'],params['2'],params['3']].filter(Boolean).map(p=>`<a href="/wiki/${p.replace(/ /g,'_')}" class="wikilink">${p}</a>`).join(', ')
+    return `<div class="hatnote" role="note"><i>Main article${[params['1'],params['2'],params['3']].filter(Boolean).length>1?'s':''}:</i> ${links}</div>`
   }
   if (nameLower === 'see also') {
-    const links = [params['1'],params['2'],params['3']].filter(Boolean)
-      .map(p => `<a href="/wiki/${p.replace(/ /g,'_')}" class="wikilink">${p}</a>`).join(' · ')
-    return `<div class="hatnote" role="note">See also: ${links}</div>`
+    const links = [params['1'],params['2'],params['3'],params['4'],params['5']].filter(Boolean).map(p=>`<a href="/wiki/${p.replace(/ /g,'_')}" class="wikilink">${p}</a>`).join(', ')
+    return `<div class="hatnote" role="note"><i>See also:</i> ${links}</div>`
   }
-  if (nameLower === 'quote') {
-    const author = params.author || params['2'] || ''
-    return `<blockquote class="wiki-quote"><p>${params['1']||''}</p>${author ? `<footer>— ${author}</footer>` : ''}</blockquote>`
+  if (nameLower === 'further' || nameLower === 'further information') {
+    const links = [params['1'],params['2'],params['3']].filter(Boolean).map(p=>`<a href="/wiki/${p.replace(/ /g,'_')}" class="wikilink">${p}</a>`).join(', ')
+    return `<div class="hatnote" role="note"><i>Further information:</i> ${links}</div>`
   }
-  if (nameLower === 'abbr') {
-    return `<abbr title="${escapeHtml(params['2']||'')}">${params['1']||''}</abbr>`
+  if (nameLower === 'details' || nameLower === 'more details') {
+    const links = [params['1'],params['2']].filter(Boolean).map(p=>`<a href="/wiki/${p.replace(/ /g,'_')}" class="wikilink">${p}</a>`).join(', ')
+    return `<div class="hatnote" role="note"><i>More details:</i> ${links}</div>`
   }
-  if (nameLower === 'color' || nameLower === 'colour') {
-    return `<span style="color:${escapeHtml(params['2']||'inherit')}">${params['1']||''}</span>`
+
+  // ── Inline formatting ──────────────────────────────────────────────────────
+  if (nameLower === 'quote' || nameLower === 'blockquote' || nameLower === 'bq') {
+    const text=params.text||params['1']||'', author=params.author||params.sign||params['2']||'', source=params.source||params.title||params['3']||''
+    return `<blockquote class="wiki-quote"><p>${text}</p>${author||source?`<footer>— ${author}${source?`, <cite>${source}</cite>`:''}</footer>`:''}</blockquote>`
   }
-  if (nameLower === 'clear') return `<div style="clear:both"></div>`
-  if (nameLower === 'toc right') return `<div style="float:right;clear:right;margin:0 0 1em 2em" id="toc-right-anchor"></div>`
+  if (nameLower === 'pull quote' || nameLower === 'pullquote') {
+    return `<blockquote class="wiki-pull-quote"><p>${params.text||params['1']||''}</p>${params.char?`<footer>— ${params.char}</footer>`:''}</blockquote>`
+  }
+  if (nameLower === 'poem') {
+    return `<div class="poem"><p>${(params['1']||'').replace(/\n/g,'<br>')}</p></div>`
+  }
+  if (nameLower === 'abbr' || nameLower === 'acronym') return `<abbr title="${escapeHtml(params['2']||params.meaning||'')}">${params['1']||''}</abbr>`
+  if (nameLower === 'color' || nameLower === 'colour') return `<span style="color:${escapeHtml(params['1']||'inherit')}">${params['2']||''}</span>`
+  if (nameLower === 'background color' || nameLower === 'background colour' || nameLower === 'bg') return `<span style="background-color:${escapeHtml(params['1']||'transparent')};padding:1px 3px">${params['2']||''}</span>`
+  if (nameLower === 'colorbox') return `<span style="background-color:${escapeHtml(params['1']||params.color||'#eee')};color:${escapeHtml(params.textcolor||'inherit')};padding:1px 5px;border-radius:2px">${params['2']||params.text||''}</span>`
+  if (nameLower === 'small')   return `<small>${params['1']||''}</small>`
+  if (nameLower === 'big')     return `<big>${params['1']||''}</big>`
+  if (nameLower === 'sub')     return `<sub>${params['1']||''}</sub>`
+  if (nameLower === 'sup')     return `<sup>${params['1']||''}</sup>`
+  if (nameLower === 'code')    return `<code class="mw-code">${escapeHtml(params['1']||'')}</code>`
+  if (nameLower === 'kbd')     return `<kbd>${escapeHtml(params['1']||'')}</kbd>`
+  if (nameLower === 'var')     return `<var>${params['1']||''}</var>`
+  if (nameLower === 'samp')    return `<samp>${escapeHtml(params['1']||'')}</samp>`
+  if (nameLower === 'mono' || nameLower === 'tt') return `<span style="font-family:monospace">${params['1']||''}</span>`
+  if (nameLower === 'pre')     return `<pre>${escapeHtml(params['1']||'')}</pre>`
+  if (nameLower === 'nowrap')  return `<span style="white-space:nowrap">${params['1']||''}</span>`
+  if (nameLower === 'strikethrough'||nameLower==='strike'||nameLower==='s'||nameLower==='del') return `<s>${params['1']||''}</s>`
+  if (nameLower === 'underline' || nameLower === 'u') return `<u>${params['1']||''}</u>`
+  if (nameLower === 'overline') return `<span style="text-decoration:overline">${params['1']||''}</span>`
+  if (nameLower === 'resize')  return `<span style="font-size:${escapeHtml(params['2']||'1em')}">${params['1']||''}</span>`
+  if (nameLower === 'center' || nameLower === 'centre') return `<div style="text-align:center">${params['1']||''}</div>`
+  if (nameLower === 'right')   return `<div style="text-align:right">${params['1']||''}</div>`
+  if (nameLower === 'left')    return `<div style="text-align:left">${params['1']||''}</div>`
+  if (nameLower === 'indent') { const n=Math.max(1,parseInt(params['1']||'1')||1); return `<div style="margin-left:${n*1.6}em">${params['2']||params['1']||''}</div>` }
+  if (nameLower === 'hidden' || nameLower === 'hide') return ''
+
+  // ── Layout ─────────────────────────────────────────────────────────────────
+  if (nameLower === 'clear')       return `<div style="clear:both"></div>`
+  if (nameLower === 'clear left')  return `<div style="clear:left"></div>`
+  if (nameLower === 'clear right') return `<div style="clear:right"></div>`
+  if (nameLower === 'toc right')   return `<div style="float:right;clear:right;margin:0 0 1em 2em" id="toc-right-anchor"></div>`
+  if (nameLower === 'notoc')       return ''
+  if (nameLower === 'br')          return '<br>'
+  if (nameLower === 'spaced ndash') return ' \u2013 '
+  if (nameLower === 'ndash')       return '\u2013'
+  if (nameLower === 'mdash')       return '\u2014'
+  if (nameLower === 'nbsp')        return '\u00a0'
+  if (nameLower === 'thinsp' || nameLower === 'thin space') return '\u202f'
+  if (nameLower === 'shy')         return '\u00ad'
+  if (nameLower === '=')           return '='
+  if (nameLower === '!')           return '|'
+  if (nameLower === 'div col' || nameLower === 'columns') {
+    const w = params.colwidth || params['1'] || '30em'
+    return `<div class="mw-columns" style="column-width:${w};column-gap:1.5em">`
+  }
+  if (nameLower === 'div col end' || nameLower === 'columns end' || nameLower === 'end div col') return `</div>`
+
+  // ── Dates / numbers ────────────────────────────────────────────────────────
   if (nameLower === 'date') return `<span class="date-format">${params['1']||''}</span>`
-  if (nameLower === 'warning') {
-    return `<div class="tmbox tmbox-warning"><span class="tmbox-icon">⚠️</span><div><b>Warning:</b> ${params['1']||''}</div></div>`
+  if (nameLower === 'start date' || nameLower === 'birth date' || nameLower === 'birth-date') {
+    const [y,m,d]=[params['1']||params.year||'',params['2']||params.month||'',params['3']||params.day||'']
+    const isoDate=[y,m&&m.padStart(2,'0'),d&&d.padStart(2,'0')].filter(Boolean).join('-')
+    return `<time class="bday" datetime="${escapeHtml(isoDate)}">${[d,m,y].filter(Boolean).join(' ')||isoDate}</time>`
   }
-  if (nameLower === 'under construction') {
-    return `<div class="tmbox tmbox-notice"><span class="tmbox-icon">🚧</span><div><b>This page is under construction.</b> It may be incomplete or contain errors.</div></div>`
+  if (nameLower === 'death date' || nameLower === 'end date') {
+    const [y,m,d]=[params['1']||params.year||'',params['2']||params.month||'',params['3']||params.day||'']
+    const isoDate=[y,m&&m.padStart(2,'0'),d&&d.padStart(2,'0')].filter(Boolean).join('-')
+    return `<time datetime="${escapeHtml(isoDate)}">${[d,m,y].filter(Boolean).join(' ')||isoDate}</time>`
   }
-  if (nameLower === 'outdated') {
-    return `<div class="tmbox tmbox-notice"><span class="tmbox-icon">🕐</span><div><b>This article may be outdated.</b> Please help update it to reflect recent events.</div></div>`
+  if (nameLower === 'birth date and age') {
+    const [y,m,d]=[parseInt(params['1']||'0'),parseInt(params['2']||'0'),parseInt(params['3']||'0')]
+    const now=new Date(); let age=now.getFullYear()-y
+    if(now.getMonth()+1<m||(now.getMonth()+1===m&&now.getDate()<d))age--
+    const isoDate=[String(y),String(m).padStart(2,'0'),String(d).padStart(2,'0')].join('-')
+    return `<time class="bday" datetime="${isoDate}">${d} ${new Date(y,m-1,d).toLocaleString('en',{month:'long'})} ${y}</time> (age\u00a0${age})`
   }
-  if (nameLower === 'delete') {
-    return `<div class="tmbox tmbox-delete"><span class="tmbox-icon">🗑️</span><div><b>This page has been proposed for deletion.</b> Reason: ${params['1']||'No reason given.'}</div></div>`
+  if (nameLower === 'age') { const y=parseInt(params['1']||'0'); return y?String(new Date().getFullYear()-y):'' }
+  if (nameLower === 'formatnum' || nameLower === 'formatnumber') {
+    const n=parseFloat(String(params['1']||'').replace(/,/g,''))
+    return isNaN(n)?(params['1']||''):n.toLocaleString()
   }
-  if (nameLower === 'reflist') {
-    // BUG FIX: {{reflist}} was returning a literal <references/> string which then
-    // never got expanded because the <references/> replace already ran earlier.
-    // Fix: return the rendered references HTML directly via the refs array captured
-    // in parseWikitext scope. Since resolveTemplate runs inside expandTemplates
-    // (which is called before <references/> processing), this is fine — the
-    // <references/> tag in the output WILL be processed by the regex later.
-    // Leave it as-is; the tag will be caught by the <references/> regex.
-    return `<references/>`
+  if (nameLower === 'convert') {
+    const val=params['1']||'',from=params['2']||'',to=params['3']||''
+    const conv={'km':{'mi':0.621371},'mi':{'km':1.60934},'kg':{'lb':2.20462},'lb':{'kg':0.453592},'m':{'ft':3.28084},'ft':{'m':0.3048},'cm':{'in':0.393701},'in':{'cm':2.54},'km2':{'sqmi':0.386102},'sqmi':{'km2':2.58999}}
+    const factor=conv[from]?.[to]
+    if(factor&&to){const c=(parseFloat(val)*factor).toFixed(1);return `${val}\u00a0${from} (${c}\u00a0${to})`}
+    return `${val}${from?' '+from:''}${to?' ('+to+')':''}`
+  }
+  if (nameLower === 'lang' || nameLower === 'language') return `<span lang="${escapeHtml(params['1']||'')}">${params['2']||''}</span>`
+  if (nameLower === 'transliteration' || nameLower === 'transl') return `<span class="transliteration">${params['2']||params['1']||''}</span>`
+  if (nameLower === 'native name') return `<span lang="${escapeHtml(params.lang||params['1']||'')}">${params['2']||params['1']||''}</span>`
+
+  // ── Flags / geography ──────────────────────────────────────────────────────
+  if (nameLower === 'flag' || nameLower === 'flagicon' || nameLower === 'flagcountry') {
+    const country=params['1']||''
+    const flagMap={'US':'🇺🇸','United States':'🇺🇸','UK':'🇬🇧','United Kingdom':'🇬🇧','GB':'🇬🇧','France':'🇫🇷','FR':'🇫🇷','Germany':'🇩🇪','DE':'🇩🇪','Japan':'🇯🇵','JP':'🇯🇵','China':'🇨🇳','CN':'🇨🇳','India':'🇮🇳','IN':'🇮🇳','Brazil':'🇧🇷','BR':'🇧🇷','Canada':'🇨🇦','CA':'🇨🇦','Australia':'🇦🇺','AU':'🇦🇺','Russia':'🇷🇺','RU':'🇷🇺','Spain':'🇪🇸','ES':'🇪🇸','Italy':'🇮🇹','IT':'🇮🇹','Mexico':'🇲🇽','MX':'🇲🇽','South Korea':'🇰🇷','KR':'🇰🇷','Netherlands':'🇳🇱','NL':'🇳🇱','Sweden':'🇸🇪','SE':'🇸🇪','Norway':'🇳🇴','NO':'🇳🇴','Poland':'🇵🇱','PL':'🇵🇱','Ukraine':'🇺🇦','UA':'🇺🇦','Argentina':'🇦🇷','AR':'🇦🇷','Portugal':'🇵🇹','PT':'🇵🇹','Switzerland':'🇨🇭','CH':'🇨🇭'}
+    const flag=flagMap[country]||''
+    return `${flag} <a href="/wiki/${country.replace(/ /g,'_')}" class="wikilink">${country}</a>`
+  }
+  if (nameLower === 'coord' || nameLower === 'coordinates') {
+    const lat=params['1']||params.lat||'',lon=params['2']||params.lon||params.long||''
+    if(!lat&&!lon)return ''
+    const mapsUrl=`https://www.openstreetmap.org/?mlat=${encodeURIComponent(lat)}&mlon=${encodeURIComponent(lon)}`
+    return `<span class="geo-default"><a href="${mapsUrl}" class="external" target="_blank" rel="noopener">${lat}°N, ${lon}°E</a></span>`
   }
 
-  // ── Protection template (admin banner) ─────────────────────────────────────
-  if (nameLower === 'protection' || nameLower === 'protected') {
-    const level = (params.level || params['1'] || 'full').toLowerCase()
-    const reason = params.reason || params['2'] || ''
-    const expiry = params.expiry || params['3'] || 'indefinite'
-    const icons = { full: '🔒', semi: '🔓', move: '🔀', create: '🚫' }
-    const labels = { full: 'fully protected', semi: 'semi-protected', move: 'move-protected', create: 'creation-protected' }
-    const icon = icons[level] || '🔒'
-    const label = labels[level] || 'protected'
-    return `<div class="tmbox tmbox-protection">
-      <span class="tmbox-icon">${icon}</span>
-      <div>
-        <b>This page is ${label}.</b>
-        ${reason ? ` Reason: ${reason}.` : ''}
-        ${expiry !== 'indefinite' ? ` Expires: ${expiry}.` : ''}
-        Only <a href="/wiki/WikiO:Administrators" class="wikilink">administrators</a> can ${level === 'semi' ? 'make certain edits to' : 'edit'} this page.
-      </div>
-    </div>`
+  // ── Maintenance boxes ──────────────────────────────────────────────────────
+  if (nameLower === 'warning') return `<div class="tmbox tmbox-warning" role="note"><span class="tmbox-icon">⚠️</span><div><b>Warning:</b> ${params['1']||''}</div></div>`
+  if (nameLower === 'notice' || nameLower === 'info' || nameLower === 'information') return `<div class="tmbox tmbox-notice" role="note"><span class="tmbox-icon">ℹ️</span><div>${params['1']||''}</div></div>`
+  if (nameLower === 'tip' || nameLower === 'hint') return `<div class="tmbox tmbox-notice" role="note"><span class="tmbox-icon">💡</span><div><b>Tip:</b> ${params['1']||''}</div></div>`
+  if (nameLower === 'under construction' || nameLower === 'wip' || nameLower === 'construction') return `<div class="tmbox tmbox-notice" role="note"><span class="tmbox-icon">🚧</span><div><b>This page is under construction.</b> It may be incomplete or contain errors.</div></div>`
+  if (nameLower === 'outdated' || nameLower === 'update') return `<div class="tmbox tmbox-notice" role="note"><span class="tmbox-icon">🕐</span><div><b>This article may be outdated.</b>${params['1']?' '+params['1']:''}</div></div>`
+  if (nameLower === 'cleanup' || nameLower === 'clean up') return `<div class="tmbox tmbox-notice" role="note"><span class="tmbox-icon">🧹</span><div><b>This article needs cleanup.</b>${params['1']?' '+params['1']:''}</div></div>`
+  if (nameLower === 'expand' || nameLower === 'expandsection') return `<div class="tmbox tmbox-notice" role="note"><span class="tmbox-icon">📝</span><div><b>This article needs to be expanded.</b>${params['1']?' '+params['1']:''}</div></div>`
+  if (nameLower === 'merge') { const t=params['1']||''; return `<div class="tmbox tmbox-notice" role="note"><span class="tmbox-icon">🔀</span><div><b>It has been suggested this article be merged with <a href="/wiki/${t.replace(/ /g,'_')}" class="wikilink">${t}</a>.</b></div></div>` }
+  if (nameLower === 'split') return `<div class="tmbox tmbox-notice" role="note"><span class="tmbox-icon">✂️</span><div><b>It has been suggested this article be split into separate articles.</b></div></div>`
+  if (nameLower === 'delete' || nameLower === 'deletion') return `<div class="tmbox tmbox-delete" role="note"><span class="tmbox-icon">🗑️</span><div><b>This page has been proposed for deletion.</b> Reason: ${params['1']||params.reason||'No reason given.'}</div></div>`
+  if (nameLower === 'speedy deletion' || nameLower === 'db' || nameLower === 'csd') return `<div class="tmbox tmbox-delete" role="note"><span class="tmbox-icon">⚡🗑️</span><div><b>Speedy deletion requested.</b> Reason: ${params['1']||'No reason given.'}</div></div>`
+  if (nameLower === 'copyvio' || nameLower === 'copyright violation') return `<div class="tmbox tmbox-delete" role="note"><span class="tmbox-icon">©️</span><div><b>This page may contain a copyright violation.</b>${params['1']?' '+params['1']:''}</div></div>`
+  if (nameLower === 'unreferenced' || nameLower === 'unref' || nameLower === 'no references') return `<div class="tmbox tmbox-notice" role="note"><span class="tmbox-icon">📚</span><div><b>This article does not cite any sources.</b> Please add references to improve verifiability.</div></div>`
+  if (nameLower === 'refimprove' || nameLower === 'more citations needed') return `<div class="tmbox tmbox-notice" role="note"><span class="tmbox-icon">📚</span><div><b>This article needs additional citations for verification.</b></div></div>`
+  if (nameLower === 'citation needed') return `<sup class="template-citation-needed" title="This claim needs a citation">[<i>citation needed</i>]</sup>`
+  if (nameLower === 'pov' || nameLower === 'neutrality' || nameLower === 'npov') return `<div class="tmbox tmbox-notice" role="note"><span class="tmbox-icon">⚖️</span><div><b>The neutrality of this article is disputed.</b>${params['1']?' '+params['1']:''}</div></div>`
+  if (nameLower === 'original research' || nameLower === 'or') return `<div class="tmbox tmbox-notice" role="note"><span class="tmbox-icon">🔬</span><div><b>This article may contain original research.</b></div></div>`
+  if (nameLower === 'globalize' || nameLower === 'western bias') return `<div class="tmbox tmbox-notice" role="note"><span class="tmbox-icon">🌍</span><div><b>This article may not represent a worldwide view.</b></div></div>`
+  if (nameLower === 'lead too short' || nameLower === 'lead rewrite') return `<div class="tmbox tmbox-notice" role="note"><span class="tmbox-icon">📄</span><div><b>This article's introduction may not adequately summarize the article.</b></div></div>`
+  if (nameLower === 'featured article' || nameLower === 'fa') return `<div class="tmbox tmbox-featured" role="note"><span class="tmbox-icon">⭐</span><div><b>This is a featured article.</b> It has been identified as one of the best articles on this wiki.</div></div>`
+  if (nameLower === 'good article' || nameLower === 'ga') return `<div class="tmbox tmbox-good" role="note"><span class="tmbox-icon">✅</span><div><b>This is a good article.</b></div></div>`
+  if (nameLower === 'spoken wikipedia' || nameLower === 'spoken') return `<div class="tmbox tmbox-notice" role="note"><span class="tmbox-icon">🔊</span><div><b>This article has a spoken version.</b>${params['1']?' File: '+params['1']:''}</div></div>`
+
+  // ── References ─────────────────────────────────────────────────────────────
+  if (nameLower === 'reflist' || nameLower === 'references' || nameLower === 'notelist') return `<references/>`
+  if (nameLower === 'refn') return `<ref group="${escapeHtml(params.group||'')}">${params['1']||''}</ref>`
+  if (nameLower === 'efn' || nameLower === 'efn-ua') return `<ref group="note">${params['1']||''}</ref>`
+
+  // ── Protection ─────────────────────────────────────────────────────────────
+  if (nameLower === 'protection' || nameLower === 'protected' || nameLower === 'pp' ||
+      nameLower === 'pp-move' || nameLower === 'pp-semi' || nameLower === 'pp-full') {
+    const level=nameLower==='pp-semi'?'semi':nameLower==='pp-move'?'move':(params.level||params['1']||'full').toLowerCase()
+    const reason=params.reason||params['2']||'', expiry=params.expiry||params['3']||'indefinite'
+    const icons={full:'🔒',semi:'🔓',move:'🔀',create:'🚫'}, labels={full:'fully protected',semi:'semi-protected',move:'move-protected',create:'creation-protected'}
+    return `<div class="tmbox tmbox-protection" role="note"><span class="tmbox-icon">${icons[level]||'🔒'}</span><div><b>This page is ${labels[level]||'protected'}.</b>${reason?' Reason: '+reason+'.':''}${expiry!=='indefinite'?' Expires: '+expiry+'.':''} Only <a href="/wiki/WikiO:Administrators" class="wikilink">administrators</a> can ${level==='semi'?'make certain edits to':'edit'} this page.</div></div>`
   }
 
-  // ── Try fetching from Template: namespace ─────────────────────────────────
+  // ── Try fetching from Template: namespace ─────────────────────────────────  // ── Try fetching from Template: namespace ─────────────────────────────────
   // BUG FIX: Original used `name.charAt(0).toUpperCase() + name.slice(1)` which
   // failed for names with underscores vs spaces — e.g. {{My_Template}} vs
   // {{My Template}}. Normalise spaces↔underscores so both forms resolve correctly.
@@ -322,49 +442,244 @@ function parseSyncTemplate(inner) {
     if (eq >= 0) params[part.slice(0, eq).trim()] = part.slice(eq + 1).trim()
     else params[String(pos++)] = part.trim()
   }
-  if (['cite web','cite news','cite book','cite journal'].includes(name))
-    return renderCitation(name.replace('cite ',''), params)
+  const citeTypes = ['cite web','cite news','cite book','cite journal','cite magazine',
+    'cite report','cite press release','cite podcast','cite interview','cite speech',
+    'cite av media','cite episode']
+  if (citeTypes.includes(name)) return renderCitation(name.replace('cite ',''), params)
   return `{{${inner}}}`
 }
 
-// ── Infobox renderer
+// ── Infobox renderer — Wikipedia label1/data1 style
+// Supports: name/title (caption), image/image_size/alt/caption,
+//           label1..label99 / data1..data99 for rows,
+//           header1..header99 for section headers,
+//           above (bold name row), below (footer row),
+//           bodystyle, labelstyle, datastyle, headerstyle (inline styles),
+//           subheader, subheader2 (italic subheadings under name)
 function renderInfobox(params) {
-  const rows = Object.entries(params)
-    .filter(([k]) => !['title','image','caption'].includes(k))
-    .map(([k, v]) => `<tr><th>${capitalise(k)}</th><td>${v}</td></tr>`)
-    .join('')
-  const titleRow = params.title ? `<caption class="infobox-title">${params.title}</caption>` : ''
-  const imageRow = params.image ? `<tr><td colspan="2" class="infobox-image"><img src="${params.image}" alt="${params.caption||''}"></td></tr>` : ''
-  return `<table class="infobox">${titleRow}<tbody>${imageRow}${rows}</tbody></table>`
+  let html = '<table class="infobox">'
+
+  // Caption (above / name / title)
+  const caption = params.above || params.name || params.title || ''
+  if (caption) html += `<caption class="infobox-title">${caption}</caption>`
+
+  // Subheader rows
+  for (const k of ['subheader','subheader2','subheader3']) {
+    if (params[k]) html += `<tr><td colspan="2" class="infobox-subheader">${params[k]}</td></tr>`
+  }
+
+  // Image row
+  const img = params.image || params.image1 || ''
+  if (img) {
+    const alt = params.alt || params.caption || ''
+    const cap = params.caption || ''
+    const sz  = params.image_size || params.imagesize || ''
+    const imgTag = `<img src="${img}" alt="${escapeHtml(alt)}" style="max-width:${sz||'100%'};height:auto">`
+    html += `<tr><td colspan="2" class="infobox-image">${imgTag}${cap ? `<div class="infobox-caption">${cap}</div>` : ''}</td></tr>`
+  }
+
+  // Image2 row (some infoboxes have a second image)
+  if (params.image2) {
+    const alt2 = params.alt2 || params.caption2 || ''
+    const cap2 = params.caption2 || ''
+    html += `<tr><td colspan="2" class="infobox-image"><img src="${params.image2}" alt="${escapeHtml(alt2)}" style="max-width:100%;height:auto">${cap2 ? `<div class="infobox-caption">${cap2}</div>` : ''}</td></tr>`
+  }
+
+  // Numbered rows: header1..99, label1..99 / data1..99
+  const bodystyle    = params.bodystyle    ? ` style="${params.bodystyle}"`    : ''
+  const labelstyle   = params.labelstyle   ? ` style="${params.labelstyle}"`   : ''
+  const datastyle    = params.datastyle    ? ` style="${params.datastyle}"`    : ''
+  const headerstyle  = params.headerstyle  ? ` style="${params.headerstyle}"`  : ''
+
+  let hasNumbered = false
+  for (let i = 1; i <= 99; i++) {
+    const header = params[`header${i}`]
+    const label  = params[`label${i}`]
+    const data   = params[`data${i}`]
+
+    if (header !== undefined) {
+      html += `<tr><th colspan="2" class="infobox-header"${headerstyle}>${header}</th></tr>`
+      hasNumbered = true
+    } else if (data !== undefined) {
+      if (label !== undefined) {
+        html += `<tr><th class="infobox-label"${labelstyle}>${label}</th><td class="infobox-data"${datastyle}>${data}</td></tr>`
+      } else {
+        html += `<tr><td colspan="2" class="infobox-data infobox-data-full"${datastyle}>${data}</td></tr>`
+      }
+      hasNumbered = true
+    }
+  }
+
+  // Fallback: if no label1/data1 style params, render all unknown params as rows
+  if (!hasNumbered) {
+    const skip = new Set(['above','name','title','image','image1','image2','image_size','imagesize',
+      'alt','alt2','caption','caption2','subheader','subheader2','subheader3','below',
+      'bodystyle','labelstyle','datastyle','headerstyle'])
+    for (const [k, v] of Object.entries(params)) {
+      if (!skip.has(k) && v) {
+        html += `<tr><th class="infobox-label">${capitalise(k.replace(/_/g,' '))}</th><td class="infobox-data">${v}</td></tr>`
+      }
+    }
+  }
+
+  // Below row
+  if (params.below) {
+    html += `<tr><td colspan="2" class="infobox-below">${params.below}</td></tr>`
+  }
+
+  html += '</table>'
+  return html
 }
 
 // ── Stub renderer
-function renderStub() {
+function renderStub(params) {
+  const type = params && params['1'] ? params['1'] + ' ' : ''
   return `<div class="stub-notice">
     <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/16/Writing_stub.svg/30px-Writing_stub.svg.png" alt="">
-    <i>This article is a <a href="/wiki/Help:Stub" class="wikilink">stub</a>. You can help WikiO by expanding it.</i>
+    <i>This ${type}article is a <a href="/wiki/Help:Stub" class="wikilink">stub</a>. You can help WikiO by expanding it.</i>
   </div>`
 }
 
-// ── Citation renderer
+// ── Citation renderer — Wikipedia-style
+// Supports: last/first, last2/first2 ... last9/first9, author, authors,
+//           title, url, work, website, newspaper, journal, publisher,
+//           date, year, access-date, accessdate, pages, page, doi, isbn,
+//           archive-url, archive-date, url-status, chapter, edition,
+//           volume, issue, location
 function renderCitation(type, params) {
-  const author = params.author || params.last || ''
-  const date = params.date || params.year || ''
-  const title = params.title || ''
-  const url = params.url || ''
-  const publisher = params.publisher || params.newspaper || params.journal || params.website || ''
-  const isbn = params.isbn || ''
-  const accessdate = params.accessdate || params['access-date'] || ''
+  // ── Build author string ────────────────────────────────────────────────────
+  let authorStr = ''
+  if (params.authors) {
+    authorStr = params.authors
+  } else {
+    const authorList = []
+    // Supports last/first, last2/first2 ... last9/first9
+    for (let i = 1; i <= 9; i++) {
+      const suffix = i === 1 ? '' : String(i)
+      const last = params[`last${suffix}`] || params[`surname${suffix}`] || ''
+      const first = params[`first${suffix}`] || params[`given${suffix}`] || ''
+      if (last || first) {
+        authorList.push(last && first ? `${last}, ${first}` : last || first)
+      }
+    }
+    // Fall back to |author= or |author1=
+    if (!authorList.length) {
+      const a = params.author || params.author1 || ''
+      if (a) authorList.push(a)
+    }
+    if (authorList.length > 4) {
+      authorStr = authorList.slice(0, 4).join('; ') + '; et al.'
+    } else {
+      authorStr = authorList.join('; ')
+    }
+  }
 
+  // ── Core fields ─────────────────────────────────────────────────────────────
+  const date      = params.date || (params.year ? (params.month ? `${params.month} ${params.year}` : params.year) : '')
+  const title     = params.title || ''
+  const url       = params.url || ''
+  const chapter   = params.chapter || ''
+  const chapterUrl= params['chapter-url'] || params.chapterurl || ''
+  // Work/venue
+  const work      = params.work || params.website || params.newspaper || params.magazine ||
+                    params.journal || params.encyclopaedia || params.encyclopedia || ''
+  const publisher = params.publisher || ''
+  const location  = params.location || params.place || ''
+  const edition   = params.edition || ''
+  const volume    = params.volume || ''
+  const issue     = params.issue || params.number || ''
+  const pages     = params.pages || params.page || ''
+  const doi       = params.doi || ''
+  const isbn      = params.isbn || params.ISBN || ''
+  const issn      = params.issn || ''
+  const pmid      = params.pmid || ''
+  const arxiv     = params.arxiv || ''
+  const accessdate= params['access-date'] || params.accessdate || params['accessdate'] || ''
+  const archiveUrl= params['archive-url'] || params.archiveurl || ''
+  const archiveDate=params['archive-date'] || params.archivedate || ''
+  const urlStatus = (params['url-status'] || 'live').toLowerCase()
+  const language  = params.language || params.lang || ''
+  const quote     = params.quote || ''
+  const via       = params.via || ''
+  const ref       = params.ref || ''
+
+  // ── Assemble ────────────────────────────────────────────────────────────────
   const parts = []
-  if (author) parts.push(author)
+
+  // Authors
+  if (authorStr) parts.push(authorStr)
+
+  // Date
   if (date) parts.push(`(${date})`)
-  if (title) parts.push(url ? `"<a href="${url}" class="external" target="_blank" rel="noopener">${title}</a>"` : `"${title}"`)
-  if (publisher) parts.push(`<i>${publisher}</i>`)
-  if (isbn) parts.push(`ISBN ${isbn}`)
+
+  // Chapter (for books)
+  if (chapter) {
+    const chDisplay = chapterUrl
+      ? `"<a href="${chapterUrl}" class="external" target="_blank" rel="noopener">${chapter}</a>"`
+      : `"${chapter}"`
+    parts.push(chDisplay)
+  }
+
+  // Title — italicised for books/journals, quoted for articles/web
+  if (title) {
+    const needsItalics = ['book','journal','magazine','report','podcast','av media','episode'].includes(type)
+    let titleDisplay
+    if (url && urlStatus !== 'dead') {
+      titleDisplay = needsItalics
+        ? `<i><a href="${url}" class="external" target="_blank" rel="noopener">${title}</a></i>`
+        : `"<a href="${url}" class="external" target="_blank" rel="noopener">${title}</a>"`
+    } else if (archiveUrl) {
+      titleDisplay = needsItalics
+        ? `<i><a href="${archiveUrl}" class="external" target="_blank" rel="noopener">${title}</a></i>`
+        : `"<a href="${archiveUrl}" class="external" target="_blank" rel="noopener">${title}</a>"`
+    } else {
+      titleDisplay = needsItalics ? `<i>${title}</i>` : `"${title}"`
+    }
+    if (url && urlStatus === 'dead' && archiveUrl) {
+      titleDisplay += ` [<a href="${archiveUrl}" class="external" target="_blank" rel="noopener">archived</a> ${archiveDate}]`
+    }
+    parts.push(titleDisplay)
+  }
+
+  // Work / venue
+  if (work) {
+    const workDisplay = ['book','report'].includes(type) ? work : `<i>${work}</i>`
+    parts.push(workDisplay)
+  }
+
+  // Location + publisher
+  if (location && publisher) parts.push(`${location}: ${publisher}`)
+  else if (publisher) parts.push(publisher)
+  else if (location) parts.push(location)
+
+  // Edition, volume, issue, pages
+  const extras = []
+  if (edition) extras.push(`${edition} ed.`)
+  if (volume)  extras.push(`vol. ${volume}`)
+  if (issue)   extras.push(`no. ${issue}`)
+  if (pages)   extras.push(`pp. ${pages}`)
+  if (extras.length) parts.push(extras.join(', '))
+
+  // Identifiers
+  if (doi)   parts.push(`<a href="https://doi.org/${doi}" class="external" target="_blank" rel="noopener">doi:${doi}</a>`)
+  if (isbn)  parts.push(`<a href="/wiki/Special:BookSources/${isbn.replace(/-/g,'')}" class="wikilink">ISBN ${isbn}</a>`)
+  if (issn)  parts.push(`ISSN ${issn}`)
+  if (pmid)  parts.push(`<a href="https://pubmed.ncbi.nlm.nih.gov/${pmid}/" class="external" target="_blank" rel="noopener">PMID ${pmid}</a>`)
+  if (arxiv) parts.push(`<a href="https://arxiv.org/abs/${arxiv}" class="external" target="_blank" rel="noopener">arXiv:${arxiv}</a>`)
+  if (via)   parts.push(`via ${via}`)
+
+  // Access date
   if (accessdate) parts.push(`Retrieved ${accessdate}`)
 
-  return `<span class="citation">${parts.join('. ')}${parts.length ? '.' : ''}</span>`
+  // Language
+  if (language && language.toLowerCase() !== 'en') parts.push(`(in ${language})`)
+
+  // Quote
+  if (quote) parts.push(`"${quote}"`)
+
+  const body = parts.join('. ').replace(/\.\./g, '.') + (parts.length ? '.' : '')
+  const idAttr = ref && ref !== 'harv' ? ` id="${escapeHtml(ref)}"` : ''
+  return `<span class="citation cite-${type}"${idAttr}>${body}</span>`
 }
 
 // ── Wiki tables
@@ -531,19 +846,36 @@ function buildTOC(html) {
   return toc
 }
 
-// ─── CSS Pages ────────────────────────────────────────────────────────────────
+// ─── CSS / JS Pages ──────────────────────────────────────────────────────────
 async function loadCustomCSS() {
-  const pages = ['MediaWiki:Common.css', 'MediaWiki:Vector.css']
+  // Load all CSS pages: MediaWiki:Common.css, MediaWiki:*.css, Module:*/styles.css
   let combined = ''
-  for (const title of pages) {
-    try {
-      const res = await fetch(`/api/page/${encodeURIComponent(title)}`)
-      const data = await res.json()
-      if (data.content && data.content.trim()) {
-        combined += `\n/* ${title} */\n${data.content}\n`
-      }
-    } catch { /* ignore */ }
-  }
+  try {
+    const res = await fetch('/api/pages')
+    const data = await res.json()
+    const cssPages = (data.pages || []).filter(p =>
+      (p.title.startsWith('MediaWiki:') && p.title.endsWith('.css')) ||
+      (p.title.startsWith('Module:') && p.title.endsWith('/styles.css')) ||
+      (p.title.startsWith('Template:') && p.title.endsWith('/styles.css'))
+    ).sort((a, b) => {
+      // Common.css first, then Vector.css, then others
+      if (a.title === 'MediaWiki:Common.css') return -1
+      if (b.title === 'MediaWiki:Common.css') return 1
+      if (a.title === 'MediaWiki:Vector.css') return -1
+      if (b.title === 'MediaWiki:Vector.css') return 1
+      return a.title.localeCompare(b.title)
+    })
+    for (const page of cssPages) {
+      try {
+        const r = await fetch(`/api/page/${encodeURIComponent(page.title)}`)
+        const d = await r.json()
+        if (d.content && d.content.trim()) {
+          combined += `\n/* ${page.title} */\n${d.content}\n`
+        }
+      } catch { /* ignore individual failures */ }
+    }
+  } catch { /* ignore */ }
+  if (!combined.trim()) return
   if (!combined.trim()) return
   let styleEl = document.getElementById('wikio-custom-css')
   if (!styleEl) {
@@ -751,7 +1083,10 @@ async function renderWikiPage(title) {
   const isAdmin = !!(currentUser && currentUser.is_admin)
   const username = currentUser ? currentUser.username : null
 
-  const isCSSPage = title.startsWith('MediaWiki:') && title.endsWith('.css')
+  const isCSSPage = title.endsWith('.css')
+  const isJSPage  = title.endsWith('.js')
+  const isCodePage = isCSSPage || isJSPage
+  const isModulePage = title.startsWith('Module:') && !title.endsWith('/styles.css') && !title.endsWith('/doc')
 
   let nsClass = 'ns-main'
   if (title.startsWith('Help:')) nsClass = 'ns-help'
@@ -765,7 +1100,7 @@ async function renderWikiPage(title) {
   let mainContent = ''
 
   if (currentTab === 'read') {
-    if (isCSSPage) {
+    if (isCodePage) {
       mainContent = `
         <div class="mw-parser-output">
           <div class="hatnote" role="note">This is a CSS stylesheet page. To apply changes, edit this page — styles load automatically on every page.</div>
@@ -778,16 +1113,16 @@ async function renderWikiPage(title) {
       mainContent = `<div class="mw-parser-output ${!pageExists ? 'page-missing' : ''}">${withToc}</div>`
     }
   } else if (currentTab === 'edit') {
-    const editorNote = isCSSPage
-      ? '<span class="new-page-notice">Editing a CSS page — content is raw CSS, not wikitext. Changes take effect on next page load.</span>'
+    const editorNote = isCodePage
+      ? '<span class="new-page-notice">Editing a ' + (isCSSPage ? 'CSS' : isJSPage ? 'JS' : 'code') + ' page — content is raw code, not wikitext. Changes take effect on next page load.</span>'
       : (!pageExists ? '<span class="new-page-notice">This page does not exist yet — your edit will create it.</span>' : '')
     mainContent = `
       <div class="mw-editnotice">
         <p>You are editing <b>${displayTitle}</b>. ${editorNote}</p>
         ${isCSSPage ? '' : `<p class="edit-help">Need help? See <a href="/wiki/Help:Wikitext" class="wikilink">Help:Wikitext</a>.</p>`}
       </div>
-      <textarea id="editor" class="mw-editbox${isCSSPage ? ' mw-editbox-css' : ''}" spellcheck="${isCSSPage ? 'false' : 'true'}">${escapeHtml(content)}</textarea>
-      ${isCSSPage ? '' : `
+      <textarea id="editor" class="mw-editbox${isCodePage ? ' mw-editbox-css' : ''}" spellcheck="${isCodePage ? 'false' : 'true'}">${escapeHtml(content)}</textarea>
+      ${isCodePage ? '' : `
       <div class="mw-edittools">
         <div class="edit-buttons-bar">
           <button class="wikitext-btn" data-wrap="''|''" title="Italic">I</button>
@@ -803,10 +1138,10 @@ async function renderWikiPage(title) {
       </div>
       <div class="mw-edit-actions">
         <button id="save-page" class="mw-btn mw-btn-primary">Save changes</button>
-        ${isCSSPage ? '' : '<button id="preview-btn" class="mw-btn">Show preview</button>'}
+        ${isCodePage ? '' : '<button id="preview-btn" class="mw-btn">Show preview</button>'}
         <button id="cancel-edit" class="mw-btn mw-btn-quiet">Cancel</button>
       </div>
-      ${isCSSPage ? '' : `
+      ${isCodePage ? '' : `
       <div id="preview-area" class="mw-preview" style="display:none">
         <h2>Preview (not saved)</h2>
         <div id="preview-content" class="mw-parser-output"></div>
@@ -901,7 +1236,7 @@ async function renderWikiPage(title) {
 
   const tabs = [
     { id: 'read',    label: 'Article',  href: `/wiki/${title}` },
-    { id: 'edit',    label: isCSSPage ? 'Edit CSS' : 'Edit', href: `/wiki/${title}?action=edit` },
+    { id: 'edit',    label: isCSSPage ? 'Edit CSS' : isJSPage ? 'Edit JS' : isModulePage ? 'Edit Module' : 'Edit', href: `/wiki/${title}?action=edit` },
     { id: 'history', label: 'History',  href: `/wiki/${title}?action=history` },
     ...(pageExists ? [{ id: 'move', label: 'Move', href: `/wiki/${title}?action=move` }] : []),
     ...(pageExists && isAdmin ? [{ id: 'protect', label: isProtected ? '🔒 Unprotect' : '🔒 Protect', href: `/wiki/${title}?action=protect` }] : []),
@@ -950,14 +1285,14 @@ async function renderWikiPage(title) {
     })
   })
 
-  if (currentTab === 'edit') bindEditPage(title, isCSSPage)
+  if (currentTab === 'edit') bindEditPage(title, isCodePage || isModulePage)
   else if (currentTab === 'move') bindMovePage(title)
   else if (currentTab === 'protect') bindProtectPage(title, isProtected)
   else if (currentTab === 'delete') bindDeletePage(title)
 }
 
-function bindEditPage(title, isCSSPage) {
-  if (!isCSSPage) {
+function bindEditPage(title, isCodePage) {
+  if (!isCodePage) {
     document.querySelectorAll('.wikitext-btn').forEach(btn => {
       btn.onclick = () => {
         const editor = document.getElementById('editor')
@@ -977,7 +1312,7 @@ function bindEditPage(title, isCSSPage) {
     const btn = document.getElementById('save-page')
     btn.disabled = true; btn.textContent = 'Saving…'
     await savePage(title, content, summary)
-    if (title.startsWith('MediaWiki:') && title.endsWith('.css')) await loadCustomCSS()
+    if (isCodePage) await loadCustomCSS()
     history.pushState({}, '', `/wiki/${title}`)
     currentTab = 'read'
     render()
