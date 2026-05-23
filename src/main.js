@@ -128,20 +128,50 @@ async function parseWikitext(raw) {
 
 // ── Template expansion (async, handles transclusion + {{{param}}} substitution)
 async function expandTemplates(text, depth = 0) {
-  if (depth > 5) return text // prevent infinite transclusion loops
+  if (depth > 10) return text
 
-  // We need to find all {{...}} blocks — but they may be nested.
-  // Strategy: repeatedly find the innermost {{ }} (no nested braces inside), resolve it,
-  // replace, then repeat until none remain.
   let safety = 0
-  while (safety++ < 100) {
-    // Match innermost {{ }} — no {{ or }} inside
-    const m = text.match(/\{\{([^{}]*)\}\}/)
-    if (!m) break
-    const inner = m[1].trim()
-    const resolved = await resolveTemplate(inner, depth)
-    text = text.slice(0, m.index) + resolved + text.slice(m.index + m[0].length)
+
+  while (safety++ < 500) {
+    let start = -1
+    let level = 0
+    let found = false
+
+    for (let i = 0; i < text.length - 1; i++) {
+      const two = text.slice(i, i + 2)
+
+      if (two === '{{') {
+        if (level === 0) start = i
+        level++
+        i++
+        continue
+      }
+
+      if (two === '}}') {
+        level--
+
+        if (level === 0 && start !== -1) {
+          const full = text.slice(start, i + 2)
+          const inner = full.slice(2, -2).trim()
+
+          const resolved = await resolveTemplate(inner, depth)
+
+          text =
+            text.slice(0, start) +
+            resolved +
+            text.slice(i + 2)
+
+          found = true
+          break
+        }
+
+        i++
+      }
+    }
+
+    if (!found) break
   }
+
   return text
 }
 
