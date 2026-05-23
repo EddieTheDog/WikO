@@ -593,8 +593,23 @@ async function getCurrentUser() {
   try {
     const res = await fetch('/api/auth/me')
     const data = await res.json()
-    return data.user || null
+    if (!data.user) return null
+    return { username: data.user, is_admin: !!data.is_admin }
   } catch { return null }
+}
+
+async function deletePage(title) {
+  const res = await fetch(`/api/page/${encodeURIComponent(title)}`, { method: 'DELETE' })
+  return res.json()
+}
+
+async function protectPage(title, protect, reason) {
+  const res = await fetch(`/api/page/${encodeURIComponent(title)}/protect`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ protect, reason })
+  })
+  return res.json()
 }
 
 async function login(username, password) {
@@ -724,13 +739,17 @@ async function renderWikiPage(title) {
   if (action === 'edit') currentTab = 'edit'
   else if (action === 'history') currentTab = 'history'
   else if (action === 'move') currentTab = 'move'
+  else if (action === 'protect') currentTab = 'protect'
+  else if (action === 'delete') currentTab = 'delete'
   else currentTab = 'read'
 
   const data = await getPage(title)
-  // BUG FIX: Guard against null/undefined content everywhere it's used
   const content = data.content || ''
   const pageExists = !!(data.content)
+  const isProtected = !!(data.protected)
   const displayTitle = title.replace(/_/g, ' ')
+  const isAdmin = !!(currentUser && currentUser.is_admin)
+  const username = currentUser ? currentUser.username : null
 
   const isCSSPage = title.startsWith('MediaWiki:') && title.endsWith('.css')
 
@@ -843,10 +862,12 @@ async function renderWikiPage(title) {
     { id: 'edit',    label: isCSSPage ? 'Edit CSS' : 'Edit', href: `/wiki/${title}?action=edit` },
     { id: 'history', label: 'History',  href: `/wiki/${title}?action=history` },
     ...(pageExists ? [{ id: 'move', label: 'Move', href: `/wiki/${title}?action=move` }] : []),
+    ...(pageExists && isAdmin ? [{ id: 'protect', label: isProtected ? '🔒 Unprotect' : '🔒 Protect', href: `/wiki/${title}?action=protect` }] : []),
+    ...(pageExists && isAdmin ? [{ id: 'delete', label: '🗑️ Delete', href: `/wiki/${title}?action=delete`, danger: true }] : []),
   ]
 
   const tabsHtml = tabs.map(t => `
-    <li class="mw-tab ${currentTab === t.id ? 'selected' : ''}">
+    <li class="mw-tab ${currentTab === t.id ? 'selected' : ''} ${t.danger ? 'mw-tab-danger' : ''}">
       <a href="${t.href}">${t.label}</a>
     </li>`).join('')
 
@@ -855,13 +876,14 @@ async function renderWikiPage(title) {
       <div class="mw-tabs-container">
         <ul class="mw-tabs">${tabsHtml}</ul>
         <ul class="mw-tabs-right">
-          ${currentUser
-            ? `<li><a href="/wiki/User:${currentUser}" class="wikilink">User:${currentUser}</a></li>
+          ${username
+            ? `<li><a href="/wiki/User:${username}" class="wikilink">User:${username}${isAdmin ? ' <span class="admin-badge">admin</span>' : ''}</a></li>
                <li><a id="logout-link" href="#">Log out</a></li>`
             : `<li><a href="/wiki/Special:Login" class="wikilink">Log in</a></li>
                <li><a href="/wiki/Special:CreateAccount" class="wikilink">Create account</a></li>`}
         </ul>
       </div>
+      ${isProtected ? '<div class="page-protected-banner">🔒 This page is protected. Only administrators can edit it.</div>' : ''}
       <h1 class="firstHeading" id="firstHeading">${displayTitle}</h1>
       <div class="mw-body-content">${mainContent}</div>
     </div>
