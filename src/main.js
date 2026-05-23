@@ -1,7 +1,7 @@
 // WikiO — main.js
 // Wikipedia-style wiki with wikitext parser
 
-// ─── Template Cache ───────────────────────────────────────────────────────────
+// ─── Template Cache ─────── ────────────────────────────────────────────────────
 const templateCache = new Map()
 
 async function fetchTemplatePage(name) {
