@@ -719,11 +719,163 @@
     }
 
     /* ── Clearfix ────────────────────────────────────────── */
-    .mw-parser-output::after {
-      content: '';
-      display: table;
+    .mw-parser-output::after { content: ''; display: table; clear: both; }
+
+    /* ── Pull quote ──────────────────────────────────────── */
+    .wiki-pull-quote {
+      float: right;
+      clear: right;
+      width: 260px;
+      margin: 0 0 1em 2em;
+      padding: 12px 16px;
+      border-top: 3px solid var(--color-accent);
+      border-bottom: 1px solid var(--color-border);
+      font-size: 1.05rem;
+      font-style: italic;
+      color: var(--color-subtle);
+    }
+    .wiki-pull-quote p { margin: 0; }
+    .wiki-pull-quote footer { font-size: 0.8rem; font-style: normal; margin-top: 6px; color: var(--color-muted); }
+
+    /* ── Wiki blockquote / quote template ────────────────── */
+    .wiki-quote {
+      border-left: 4px solid var(--color-border);
+      margin: 0.8em 0 0.8em 1em;
+      padding: 6px 14px;
+      color: var(--color-subtle);
+      font-style: italic;
+    }
+    .wiki-quote p  { margin: 0; }
+    .wiki-quote footer { font-size: 0.875rem; font-style: normal; margin-top: 6px; color: var(--color-muted); }
+
+    /* ── Poem ────────────────────────────────────────────── */
+    .poem { margin: 1em 2em; white-space: pre-wrap; font-style: italic; line-height: 1.8; }
+
+    /* ── Infobox extras ──────────────────────────────────── */
+    .infobox-subheader { text-align: center; font-style: italic; font-size: 0.875rem; padding: 3px 8px; border-bottom: 1px solid var(--color-border-subtle); }
+    .infobox-header    { text-align: center; background: var(--color-surface-2); font-weight: 600; font-size: 0.8rem; padding: 4px 8px; border-bottom: 1px solid var(--color-border); }
+    .infobox-label     { background: var(--color-surface-2); font-weight: 600; white-space: nowrap; width: 45%; padding: 4px 8px; border-bottom: 1px solid var(--color-border-subtle); vertical-align: top; font-size: 0.8rem; }
+    .infobox-data      { padding: 4px 8px; border-bottom: 1px solid var(--color-border-subtle); vertical-align: top; font-size: 0.8rem; }
+    .infobox-data-full { text-align: center; }
+    .infobox-caption   { text-align: center; font-size: 0.8rem; color: var(--color-muted); margin-top: 4px; font-style: italic; }
+    .infobox-below     { text-align: center; font-size: 0.8rem; padding: 6px 8px; border-top: 1px solid var(--color-border); background: var(--color-surface-2); }
+    table.infobox img  { max-width: 100%; height: auto; display: block; margin: 0 auto; }
+
+    /* ── Disambiguation box ──────────────────────────────── */
+    .dmbox {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--color-surface-1);
+      border: 1px solid var(--color-border);
+      padding: 8px 12px;
+      font-size: 0.875rem;
+      margin: 1em 0;
+      font-style: italic;
+      color: var(--color-subtle);
+    }
+    .dmbox-image { font-size: 1.4rem; flex-shrink: 0; }
+
+    /* ── Featured / Good article banners ─────────────────── */
+    .tmbox-featured { background: #fffbe6; border-color: #f0c840; }
+    .tmbox-good     { background: #efffef; border-color: #6abf6a; }
+
+    /* ── Citation needed inline ──────────────────────────── */
+    .template-citation-needed {
+      color: var(--color-accent);
+      font-size: 0.75em;
+      cursor: help;
+    }
+    .template-citation-needed a { color: var(--color-accent); }
+
+    /* ── Columns layout ──────────────────────────────────── */
+    .mw-columns { margin: 0.5em 0; }
+    .mw-columns li { break-inside: avoid; }
+
+    /* ── Geo / coordinates ───────────────────────────────── */
+    .geo-default { font-size: 0.85em; color: var(--color-muted); }
+
+    /* ── Transliteration ─────────────────────────────────── */
+    .transliteration { font-style: italic; }
+
+    /* ── Delete / Protect page UI ────────────────────────── */
+    .mw-btn-danger {
+      background: #b32424;
+      color: #fff;
+      border: 1px solid #800000;
+      padding: 6px 14px;
+      cursor: pointer;
+      font-size: 0.875rem;
+      border-radius: 2px;
+    }
+    .mw-btn-danger:hover  { background: #8a1c1c; }
+    .mw-btn-danger:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .mw-editnotice-delete {
+      background: #fee7e6;
+      border: 1px solid #e07070;
+      padding: 10px 14px;
+      font-size: 0.875rem;
+      margin-bottom: 12px;
+      border-radius: 3px;
+    }
+
+    .page-protected-banner {
+      background: #f4f0fb;
+      border: 1px solid #9b7dce;
+      border-radius: 3px;
+      padding: 6px 12px;
+      font-size: 0.875rem;
+      margin-bottom: 8px;
+      color: #4a2d8a;
+    }
+
+    /* ── Admin badge ─────────────────────────────────────── */
+    .admin-badge {
+      display: inline-block;
+      background: #3366cc;
+      color: #fff;
+      font-size: 0.65em;
+      font-weight: 700;
+      padding: 1px 5px;
+      border-radius: 3px;
+      vertical-align: middle;
+      margin-left: 3px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* ── Danger tab ──────────────────────────────────────── */
+    .mw-tab-danger a { color: #b32424 !important; }
+    .mw-tab-danger.selected a { color: #b32424 !important; border-bottom-color: #b32424 !important; }
+
+    /* ── Module / Lua source ─────────────────────────────── */
+    .lua-source { background: #1a1a2e; color: #e8e8f0; }
+    .lua-source code { background: transparent; border: none; color: inherit; font-size: 0.85rem; }
+
+    /* ── CSS page read view ──────────────────────────────── */
+    .css-source { background: var(--color-surface-1); border: 1px solid var(--color-border); padding: 12px 16px; overflow: auto; border-radius: 2px; }
+    .css-source code { background: transparent; border: none; font-size: 0.875rem; }
+
+    /* ── Module:Documentation/styles.css baseline ────────── */
+    /* This matches what Wikipedia's Module:Documentation renders */
+    .mw-parser-output .documentation {
+      background: #ecfcf4;
+      border: 1px solid #a3bfb1;
+      padding: 12px 16px;
+      margin-top: 1em;
       clear: both;
     }
+    .mw-parser-output .documentation-header {
+      background: #cee0d4;
+      border-bottom: 1px solid #a3bfb1;
+      padding: 6px 16px;
+      margin: -12px -16px 12px;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+    .mw-parser-output .documentation-startbox { margin-bottom: 8px; }
+    .mw-parser-output .documentation-toolbar  { font-size: 0.8rem; color: var(--color-muted); }
   </style>
 </head>
 <body>
