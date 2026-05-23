@@ -132,7 +132,7 @@ async function expandTemplates(text, depth = 0) {
 
   let safety = 0
 
-  while (safety++ < 500) {
+ while (safety++ < 1000) {
     let start = -1
     let level = 0
     let found = false
@@ -185,8 +185,10 @@ async function resolveTemplate(inner, depth) {
   const params = {}
   let positional = 1
   const allText = lines.join('\n')
+  const split = splitTemplateParams(allText)
+  name = split[0].trim()
   function splitTemplateParams(text) {
-  const parts = []
+  const parts = split.slice(1)
   let current = ''
   let depth = 0
 
