@@ -1,7 +1,7 @@
 // WikiO — main.js
 // Wikipedia-style wiki with wikitext parser
 
-// ─── Template Cache ─────── ────────────────────────────────────────────────────
+// ─── Template Cache ───────────────────────────────────────────────────────────
 const templateCache = new Map()
 
 async function fetchTemplatePage(name) {
@@ -423,10 +423,10 @@ function renderWikiTable(match) {
       html += `<caption>${line.slice(2).trim()}</caption>`
     } else if (line.startsWith('!')) {
       if (!inRow) { html += '<tr>'; inRow = true }
-      line.slice(1).split('!!').forEach(c => { html += `<th>${c.trim()}</th>` })
+      line.slice(1).split('!!').forEach(c => { html += renderCell('th', c.trim()) })
     } else if (line.startsWith('|')) {
       if (!inRow) { html += '<tr>'; inRow = true }
-      line.slice(1).split('||').forEach(c => { html += `<td>${c.trim()}</td>` })
+      line.slice(1).split('||').forEach(c => { html += renderCell('td', c.trim()) })
     }
   }
   if (inRow) html += '</tr>'
@@ -434,7 +434,28 @@ function renderWikiTable(match) {
   return html
 }
 
-// ── Wiki lists
+// ── Wiki table cell renderer — preserves style="..." and bgcolor="..." attributes
+// BUG FIX: The original stripped all cell attributes. Wikitext allows:
+//   | style="background:red" | Cell content
+//   | bgcolor="#ff0000"      | Cell content
+// The pipe separates attributes from content only when attributes are present.
+function renderCell(tag, raw) {
+  // If the cell contains a double-pipe it was already split; raw is just content.
+  // Check if there's an attribute block: "attr | content" (single pipe, not double)
+  // We look for a pattern: something that looks like HTML attrs before a lone |
+  const attrMatch = raw.match(/^([^|]*(?:style|bgcolor|colspan|rowspan|align|valign|width|class)[^|]*)\|(.*)$/i)
+  if (attrMatch) {
+    const attrs = attrMatch[1].trim()
+    const content = attrMatch[2].trim()
+    // Convert bgcolor="..." to style attribute if no style already present
+    const safeAttrs = attrs.replace(/bgcolor=["']?([^"'\s>]+)["']?/gi,
+      (_, color) => `style="background-color:${color}"`)
+    return `<${tag} ${safeAttrs}>${content}</${tag}>`
+  }
+  return `<${tag}>${raw}</${tag}>`
+}
+
+
 function parseWikiLists(text, tag) {
   const char = tag === 'ul' ? '*' : '#'
   const lines = text.split('\n')
