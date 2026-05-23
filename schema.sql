@@ -2,8 +2,14 @@ CREATE TABLE IF NOT EXISTS pages (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   title TEXT UNIQUE NOT NULL,
   content TEXT NOT NULL,
+  protected INTEGER DEFAULT 0,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Migration for existing databases: add the protected column
+-- Run once if upgrading:
+--   npx wrangler d1 execute wikio --command "ALTER TABLE pages ADD COLUMN protected INTEGER DEFAULT 0"
+-- (D1 will error harmlessly if the column already exists — just ignore it)
 
 CREATE TABLE IF NOT EXISTS users (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -216,3 +222,52 @@ Parameters:
 * '''title''' — bold heading text shown at the top of the box.
 * '''title-color''' — color for the title text. Default: near-black.
 * '''body''' / positional '''1''' — main content of the box.');
+
+-- Module:Documentation/styles.css
+-- Styles for Template:Documentation (template doc pages)
+INSERT OR IGNORE INTO pages (title, content) VALUES ('Module:Documentation/styles.css',
+'.documentation {
+    background: #ecfcf4;
+    border: 1px solid #a3bfb1;
+    padding: 12px 16px;
+    margin-top: 1em;
+    clear: both;
+}
+.documentation-header {
+    background: #cee0d4;
+    border-bottom: 1px solid #a3bfb1;
+    padding: 6px 16px;
+    margin: -12px -16px 12px;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+.documentation-toolbar {
+    font-size: 0.8rem;
+    color: #54595d;
+    margin-top: 8px;
+}
+.documentation-startbox {
+    margin-bottom: 8px;
+}');
+
+-- Template:Documentation/styles.css (same as Module version)
+INSERT OR IGNORE INTO pages (title, content) VALUES ('Template:Documentation/styles.css',
+'/* Loaded automatically when Template:Documentation is transcluded */
+.documentation { background: #ecfcf4; border: 1px solid #a3bfb1; padding: 12px 16px; margin-top: 1em; clear: both; }
+.documentation-header { background: #cee0d4; border-bottom: 1px solid #a3bfb1; padding: 6px 16px; margin: -12px -16px 12px; font-weight: 600; }
+.documentation-toolbar { font-size: 0.8rem; color: #54595d; margin-top: 8px; }');
+
+-- MediaWiki:Common.css starter (users can edit this in the wiki)
+INSERT OR IGNORE INTO pages (title, content) VALUES ('MediaWiki:Common.css',
+'/* MediaWiki:Common.css — edit this page in the wiki to apply site-wide CSS */
+
+/* Example: make external links show an icon */
+/* a.external::after { content: " ↗"; font-size: 0.7em; } */
+
+/* Example: widen infoboxes */
+/* table.infobox { width: 280px; } */');
+
+-- MediaWiki:Vector.css starter
+INSERT OR IGNORE INTO pages (title, content) VALUES ('MediaWiki:Vector.css',
+'/* MediaWiki:Vector.css — skin-specific CSS (Vector skin only) */
+/* Edit this page in the wiki to apply additional styles. */');
