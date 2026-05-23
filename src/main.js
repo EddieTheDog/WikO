@@ -855,6 +855,48 @@ async function renderWikiPage(title) {
         <button id="move-page-btn" class="mw-btn mw-btn-primary">Move page</button>
         <button id="cancel-move" class="mw-btn mw-btn-quiet">Cancel</button>
       </div>`
+  } else if (currentTab === 'protect') {
+    mainContent = `
+      <div class="mw-editnotice">
+        <p>${isProtected ? '🔒 This page is currently <b>protected</b>.' : '🔓 This page is currently <b>unprotected</b>.'}</p>
+        <p>${isProtected ? 'Unprotecting will allow all logged-in users to edit it.' : 'Protecting will restrict editing to administrators only.'}</p>
+      </div>
+      <div id="protect-error" class="auth-error" style="display:none"></div>
+      <table class="mw-auth-table">
+        <tr>
+          <td><label for="protect-reason">Reason:</label></td>
+          <td><input id="protect-reason" type="text" size="40" placeholder="Reason for ${isProtected ? 'un' : ''}protecting" class="mw-summary-input"></td>
+        </tr>
+      </table>
+      <br>
+      <div class="mw-edit-actions">
+        <button id="protect-page-btn" class="mw-btn ${isProtected ? 'mw-btn-quiet' : 'mw-btn-primary'}">
+          ${isProtected ? '🔓 Unprotect page' : '🔒 Protect page'}
+        </button>
+        <button id="cancel-protect" class="mw-btn mw-btn-quiet">Cancel</button>
+      </div>`
+  } else if (currentTab === 'delete') {
+    mainContent = `
+      <div class="mw-editnotice mw-editnotice-delete">
+        <p>⚠️ You are about to <b>permanently delete</b> the page <b>${displayTitle}</b>.</p>
+        <p>This cannot be undone. The page content will be removed from the database.</p>
+      </div>
+      <div id="delete-error" class="auth-error" style="display:none"></div>
+      <table class="mw-auth-table">
+        <tr>
+          <td><label for="delete-reason">Reason:</label></td>
+          <td><input id="delete-reason" type="text" size="40" placeholder="Reason for deletion" class="mw-summary-input"></td>
+        </tr>
+        <tr>
+          <td></td>
+          <td><label><input type="checkbox" id="delete-confirm"> I confirm I want to permanently delete this page</label></td>
+        </tr>
+      </table>
+      <br>
+      <div class="mw-edit-actions">
+        <button id="delete-page-btn" class="mw-btn mw-btn-danger">🗑️ Delete page</button>
+        <button id="cancel-delete" class="mw-btn mw-btn-quiet">Cancel</button>
+      </div>`
   }
 
   const tabs = [
@@ -910,6 +952,8 @@ async function renderWikiPage(title) {
 
   if (currentTab === 'edit') bindEditPage(title, isCSSPage)
   else if (currentTab === 'move') bindMovePage(title)
+  else if (currentTab === 'protect') bindProtectPage(title, isProtected)
+  else if (currentTab === 'delete') bindDeletePage(title)
 }
 
 function bindEditPage(title, isCSSPage) {
@@ -986,6 +1030,62 @@ function bindMovePage(title) {
 
     if (leaveRedirect) await savePage(title, `{{redirect|${displayNew}}}`, `Redirect to [[${displayNew}]]`)
     navigate('/wiki/' + newTitle)
+  }
+}
+
+function bindProtectPage(title, isProtected) {
+  document.getElementById('cancel-protect').onclick = () => {
+    history.pushState({}, '', `/wiki/${title}`)
+    currentTab = 'read'; render()
+  }
+
+  document.getElementById('protect-page-btn').onclick = async () => {
+    const reason = document.getElementById('protect-reason').value.trim()
+    const errEl = document.getElementById('protect-error')
+    errEl.style.display = 'none'
+    const btn = document.getElementById('protect-page-btn')
+    btn.disabled = true
+    btn.textContent = isProtected ? 'Unprotecting…' : 'Protecting…'
+
+    const result = await protectPage(title, !isProtected, reason)
+    if (result.error) {
+      errEl.textContent = result.error; errEl.style.display = 'block'
+      btn.disabled = false
+      btn.textContent = isProtected ? '🔓 Unprotect page' : '🔒 Protect page'
+      return
+    }
+    history.pushState({}, '', `/wiki/${title}`)
+    currentTab = 'read'; render()
+  }
+}
+
+function bindDeletePage(title) {
+  document.getElementById('cancel-delete').onclick = () => {
+    history.pushState({}, '', `/wiki/${title}`)
+    currentTab = 'read'; render()
+  }
+
+  document.getElementById('delete-page-btn').onclick = async () => {
+    const confirmed = document.getElementById('delete-confirm').checked
+    const errEl = document.getElementById('delete-error')
+    errEl.style.display = 'none'
+
+    if (!confirmed) {
+      errEl.textContent = 'Please check the confirmation box before deleting.'
+      errEl.style.display = 'block'
+      return
+    }
+
+    const btn = document.getElementById('delete-page-btn')
+    btn.disabled = true; btn.textContent = 'Deleting…'
+
+    const result = await deletePage(title)
+    if (result.error) {
+      errEl.textContent = result.error; errEl.style.display = 'block'
+      btn.disabled = false; btn.textContent = '🗑️ Delete page'
+      return
+    }
+    navigate('/wiki/Main_Page')
   }
 }
 
