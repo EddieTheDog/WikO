@@ -11,7 +11,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&family=Source+Code+Pro:wght@400;500&display=swap" rel="stylesheet">
 
   <style>
-    /* ── Reset & Tokens ─────────────────────────────── ───── */
+    /* ── Reset & Tokens ──────────────────────────────────── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
@@ -444,6 +444,57 @@
       align-items: center;
       gap: 10px;
       margin: 1em 0;
+    }
+
+    /* ── Template message boxes (tmbox) ──────────────────── */
+    .tmbox {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      border: 1px solid var(--color-border);
+      border-radius: 3px;
+      padding: 10px 14px;
+      margin: 0.8em 0;
+      font-size: 0.875rem;
+      line-height: 1.5;
+      background: var(--color-surface-1);
+    }
+
+    .tmbox-icon {
+      font-size: 1.5rem;
+      flex-shrink: 0;
+      line-height: 1;
+      margin-top: 2px;
+    }
+
+    .tmbox b { font-weight: 600; }
+
+    .tmbox-notice {
+      background: #eaf3fb;
+      border-color: #a2cce3;
+    }
+
+    .tmbox-warning {
+      background: #fef6e7;
+      border-color: #f0c860;
+    }
+
+    .tmbox-delete {
+      background: #fee7e6;
+      border-color: #e07070;
+    }
+
+    .tmbox-protection {
+      background: #f4f0fb;
+      border-color: #9b7dce;
+    }
+
+    /* ── Inline background-color support ─────────────────── */
+    /* Wikitable cells with bgcolor= or style="background:..." */
+    .mw-parser-output td[style],
+    .mw-parser-output th[style] {
+      /* Allow inline style backgrounds to show through */
+      background-clip: padding-box;
     }
 
     .mw-editnotice {
